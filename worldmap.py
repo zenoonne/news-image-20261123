@@ -1,61 +1,69 @@
-"""worldmap.py — very simplified continent outlines for the "WHERE IT HAPPENED" map.
+#!/usr/bin/env python3
+"""worldmap.py - very simplified continent outlines for the "WHERE IT HAPPENED" panel.
 
-Coarse (lon, lat) polygons, enough to be recognisable at thumbnail size. Drawn with
-Pillow only; no external data, no network. Projection is plain equirectangular.
+Each continent is a coarse (lon, lat) polygon. They are intentionally imprecise:
+the panel is a stylised locator, not a survey map. No external data, no network.
 """
 
+# Coarse outlines, lon/lat degrees. Good enough to be recognisable at ~300 px wide.
 CONTINENTS = {
-    "north_america": [
-        (-168, 65), (-150, 70), (-125, 70), (-100, 72), (-80, 73), (-60, 60),
-        (-55, 50), (-65, 45), (-70, 42), (-75, 35), (-81, 25), (-97, 26),
-        (-105, 20), (-115, 30), (-125, 40), (-130, 55), (-140, 60), (-168, 65),
+    "N-America": [
+        (-168, 65), (-150, 70), (-125, 72), (-100, 73), (-80, 70), (-60, 60), (-52, 50),
+        (-65, 45), (-70, 42), (-75, 35), (-81, 25), (-97, 18), (-105, 20), (-115, 30),
+        (-125, 40), (-125, 49), (-135, 58), (-150, 60),
     ],
-    "south_america": [
-        (-81, 8), (-60, 10), (-50, 0), (-35, -5), (-38, -15), (-48, -25),
-        (-58, -35), (-65, -45), (-70, -55), (-75, -50), (-72, -35), (-70, -20),
-        (-75, -10), (-78, 0), (-81, 8),
+    "S-America": [
+        (-80, 10), (-60, 12), (-50, 0), (-35, -6), (-38, -22), (-48, -25), (-58, -38),
+        (-66, -55), (-73, -52), (-73, -40), (-71, -18), (-80, -5),
     ],
-    "africa": [
-        (-17, 15), (-5, 5), (9, 4), (10, -1), (13, -5), (12, -17), (15, -28),
-        (20, -35), (32, -28), (40, -15), (41, -2), (51, 11), (43, 12), (33, 15),
-        (32, 31), (10, 37), (0, 36), (-10, 30), (-17, 21), (-17, 15),
+    "Europe": [
+        (-10, 36), (-10, 44), (-2, 48), (-5, 58), (5, 60), (12, 64), (22, 70), (32, 70),
+        (40, 66), (40, 55), (30, 45), (26, 41), (16, 40), (9, 37), (0, 36),
     ],
-    "europe": [
-        (-10, 36), (-9, 44), (-5, 48), (2, 51), (5, 54), (10, 58), (20, 60),
-        (30, 60), (40, 55), (40, 48), (28, 41), (20, 40), (15, 38), (12, 45),
-        (3, 43), (-5, 36), (-10, 36),
+    "Africa": [
+        (-17, 15), (-10, 5), (9, 4), (10, -1), (12, -7), (14, -22), (18, -35), (28, -34),
+        (35, -25), (41, -15), (51, 12), (43, 12), (33, 22), (32, 31), (10, 37), (0, 36),
+        (-10, 30), (-17, 21),
     ],
-    "asia": [
-        (30, 60), (60, 70), (100, 75), (140, 72), (170, 68), (160, 60),
-        (140, 50), (130, 42), (122, 30), (110, 20), (100, 13), (95, 5),
-        (80, 8), (70, 25), (60, 25), (48, 30), (35, 36), (28, 41), (40, 48),
-        (40, 55), (30, 60),
+    "Asia": [
+        (40, 66), (60, 70), (78, 74), (100, 76), (120, 73), (140, 72), (162, 70), (180, 66),
+        (180, 50), (160, 45), (145, 35), (140, 30), (122, 30), (120, 22), (108, 20),
+        (105, 10), (100, 5), (95, 10), (90, 22), (80, 10), (72, 22), (62, 25), (55, 25),
+        (50, 30), (45, 40), (40, 45),
     ],
-    "oceania": [
-        (113, -22), (114, -34), (129, -32), (141, -38), (150, -37), (153, -28),
-        (146, -19), (135, -14), (128, -15), (122, -17), (113, -22),
+    "Oceania": [
+        (113, -22), (115, -34), (130, -32), (145, -38), (153, -28), (147, -18), (135, -12),
+        (125, -14),
     ],
 }
 
+# Small islands/regions drawn as filled blobs so recognisable spots are not empty water.
+ISLANDS = {
+    "UK": [(3.5, -6), (1.5, 51), (-5, 55), (-5, 58), (0, 57), (0, 53)],
+    "Japan": [(140, 45), (136, 36), (131, 31), (129, 33), (135, 40), (139, 42)],
+}
 
-def project(lon, lat, box):
-    """Equirectangular projection into box = (x0, y0, x1, y1)."""
-    x0, y0, x1, y1 = box
-    x = x0 + (lon + 180.0) / 360.0 * (x1 - x0)
-    y = y0 + (90.0 - lat) / 180.0 * (y1 - y0)
+
+def project(lon, lat, x0, y0, w, h):
+    """Equirectangular projection of lon/lat into the pixel box (x0,y0,w,h)."""
+    x = x0 + (lon + 180.0) / 360.0 * w
+    y = y0 + (90.0 - lat) / 180.0 * h
     return (x, y)
 
 
-def draw_map(draw, box, land_fill, outline, grid=None):
-    """Draw the continent polygons inside box."""
-    for poly in CONTINENTS.values():
-        pts = [project(lon, lat, box) for lon, lat in poly]
-        draw.polygon(pts, fill=land_fill, outline=outline)
-    if grid:
-        x0, y0, x1, y1 = box
-        for lon in (-120, -60, 0, 60, 120):
-            x = project(lon, 0, box)[0]
-            draw.line([(x, y0), (x, y1)], fill=grid, width=1)
-        for lat in (-30, 0, 30, 60):
-            y = project(0, lat, box)[1]
-            draw.line([(x0, y), (x1, y)], fill=grid, width=1)
+def polys(x0, y0, w, h):
+    """Return [(name, [(px,py), ...]), ...] for all continents + islands."""
+    out = []
+    for name, pts in CONTINENTS.items():
+        out.append((name, [project(lo, la, x0, y0, w, h) for lo, la in pts]))
+    for name, pts in ISLANDS.items():
+        out.append((name, [project(lo, la, x0, y0, w, h) for lo, la in pts]))
+    return out
+
+
+if __name__ == "__main__":
+    # tiny self-check: every vertex lands inside the box
+    for name, pts in polys(0, 0, 360, 180):
+        for x, y in pts:
+            assert 0 <= x <= 360 and 0 <= y <= 180, (name, x, y)
+    print("worldmap ok:", len(CONTINENTS), "continents,", len(ISLANDS), "islands")

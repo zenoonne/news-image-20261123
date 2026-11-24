@@ -1,7 +1,9 @@
-// main.ts — grader entrypoint for the news-image-20261123 front page.
-// Resolve where the grader wants the entry (MAKEFUN_OUTPUT_DIR, else /output),
-// make sure that directory exists, and copy the pre-rendered entry.png beside
-// this script into it. Pure copy: no network, no randomness, no side effects.
+// Grader entrypoint for the news-image-20261123 v2 front page.
+// Purpose: put the pre-rendered entry.png where the grader looks for it.
+// The grader passes MAKEFUN_OUTPUT_DIR (else we fall back to /output);
+// we create that folder and copy the PNG that sits next to this script,
+// resolved from the script path so the working directory does not matter.
+// No network, no randomness: the PNG is already baked, we only copy it.
 import { mkdirSync, copyFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
